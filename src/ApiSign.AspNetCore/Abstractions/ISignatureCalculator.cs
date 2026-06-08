@@ -16,4 +16,9 @@ public interface ISignatureCalculator
     /// Calculates the request signature using the selected algorithm.
     /// </summary>
     string Calculate(SignParameters parameters, string secretKey, SignAlgorithm algorithm);
+
+    /// <summary>
+    /// Calculates the request signature using a pre-computed canonical string.
+    /// </summary>
+    string Calculate(string canonicalString, string secretKey, SignAlgorithm algorithm);
 }

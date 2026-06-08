@@ -1,4 +1,7 @@
+using System.Diagnostics;
+
 using ApiSign.AspNetCore.Abstractions;
+using ApiSign.AspNetCore.Diagnostics;
 
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -32,10 +35,23 @@ public sealed class ApiSignAuthorizationFilter : IAsyncAuthorizationFilter
             return;
         }
 
+        using var activity = ApiSignDiagnostics.ActivitySource.StartActivity("ApiSign.Validate");
+        activity?.SetTag("validation_context", "filter");
+        activity?.SetTag("request_path", context.HttpContext.Request.Path.ToString());
+
         var result = await _signValidator.ValidateAsync(context.HttpContext);
         if (!result.Succeeded)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, result.ErrorMessage);
+            activity?.SetTag("validation_result", "failure");
+            activity?.SetTag("failure_reason", result.FailureReason.ToString());
+            activity?.SetTag("error_message", result.ErrorMessage);
+
             context.Result = new ApiSignFailureActionResult(_failureResponseHandler, result);
+            return;
         }
+
+        activity?.SetTag("validation_result", "success");
+        activity?.SetTag("appId", result.AppId);
     }
 }

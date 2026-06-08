@@ -30,12 +30,21 @@ public sealed class SignatureCalculator : ISignatureCalculator
 
     public string Calculate(SignParameters parameters, string secretKey, SignAlgorithm algorithm)
     {
+        ArgumentNullException.ThrowIfNull(parameters);
         ArgumentException.ThrowIfNullOrWhiteSpace(secretKey);
 
         var canonical = BuildCanonicalString(parameters);
+        return Calculate(canonical, secretKey, algorithm);
+    }
+
+    public string Calculate(string canonicalString, string secretKey, SignAlgorithm algorithm)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(canonicalString);
+        ArgumentException.ThrowIfNullOrWhiteSpace(secretKey);
+
         var payload = algorithm is SignAlgorithm.MD5 or SignAlgorithm.SHA256
-            ? $"{canonical}&key={secretKey}"
-            : canonical;
+            ? $"{canonicalString}&key={secretKey}"
+            : canonicalString;
         var payloadBytes = Encoding.UTF8.GetBytes(payload);
 
         return algorithm switch

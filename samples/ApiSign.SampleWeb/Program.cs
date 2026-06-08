@@ -1,7 +1,12 @@
 using ApiSign.AspNetCore.Abstractions;
+using ApiSign.AspNetCore.Diagnostics;
 using ApiSign.AspNetCore.Extensions;
 using ApiSign.AspNetCore.Models;
 using ApiSign.SampleWeb.Infrastructure;
+
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 var redisNonceOptions = builder.Configuration
@@ -31,6 +36,17 @@ builder.Services.AddApiSignAuthentication(options =>
     options.EnableNonce = true;
     options.DefaultAlgorithm = SignAlgorithm.HMACSHA256;
 });
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing
+        .AddSource(ApiSignDiagnostics.ActivitySourceName)
+        .AddAspNetCoreInstrumentation()
+        .AddConsoleExporter())
+    .WithMetrics(metrics => metrics
+        .AddMeter(ApiSignDiagnostics.MeterName)
+        .AddConsoleExporter());
+
+builder.Logging.AddOpenTelemetry(logging => logging.AddConsoleExporter());
 
 var app = builder.Build();
 
