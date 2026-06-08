@@ -1,0 +1,30 @@
+<Project>
+  <PropertyGroup>
+    <HuskyRoot Condition="'$(HuskyRoot)' == ''">$(MSBuildThisFileDirectory)</HuskyRoot>
+  </PropertyGroup>
+
+  <Target
+    Name="HuskyInstall"
+    AfterTargets="Restore"
+    Condition="'$(HUSKY)' != '0' and Exists('$(HuskyRoot).git') and Exists('$(HuskyRoot)dotnet-tools.json') and '$(IsCrossTargetingBuild)' != 'true'"
+    Inputs="$(HuskyRoot)dotnet-tools.json"
+    Outputs="$(HuskyRoot).husky\_\install.stamp">
+    <Exec
+      Command="dotnet tool restore"
+      WorkingDirectory="$(HuskyRoot)"
+      StandardOutputImportance="Low"
+      StandardErrorImportance="High" />
+    <Exec
+      Command="dotnet husky install"
+      WorkingDirectory="$(HuskyRoot)"
+      StandardOutputImportance="Low"
+      StandardErrorImportance="High" />
+    <Touch
+      Files="$(HuskyRoot).husky\_\install.stamp"
+      AlwaysCreate="true"
+      Condition="Exists('$(HuskyRoot).husky\_')" />
+    <ItemGroup>
+      <FileWrites Include="$(HuskyRoot).husky\_\install.stamp" />
+    </ItemGroup>
+  </Target>
+</Project>

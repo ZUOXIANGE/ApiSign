@@ -1,0 +1,66 @@
+{
+  "$schema": "https://alirezanet.github.io/Husky.Net/schema.json",
+  "tasks": [
+    {
+      "name": "Validate commit message",
+      "group": "commit-msg",
+      "command": "dotnet",
+      "args": [
+        "husky",
+        "exec",
+        ".husky/csx/commit-lint.csx",
+        "--args",
+        "${args}"
+      ],
+      "output": "always"
+    },
+    {
+      "name": "Format staged .NET files",
+      "group": "pre-commit",
+      "command": "dotnet",
+      "args": [
+        "format",
+        "ApiSign.slnx",
+        "--include",
+        "${staged}",
+        "--verbosity",
+        "minimal"
+      ],
+      "include": [
+        "**/*.cs",
+        "**/*.csproj",
+        "**/*.props",
+        "**/*.targets"
+      ],
+      "output": "always"
+    },
+    {
+      "name": "Build solution",
+      "group": "pre-push",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "ApiSign.slnx",
+        "--nologo",
+        "--no-restore",
+        "--verbosity",
+        "minimal"
+      ],
+      "output": "always"
+    },
+    {
+      "name": "Run tests",
+      "group": "pre-push",
+      "command": "dotnet",
+      "args": [
+        "test",
+        "ApiSign.slnx",
+        "--nologo",
+        "--no-build",
+        "--verbosity",
+        "minimal"
+      ],
+      "output": "always"
+    }
+  ]
+}

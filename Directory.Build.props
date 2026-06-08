@@ -1,0 +1,18 @@
+<Project>
+  <PropertyGroup>
+    <Authors>ApiSign Contributors</Authors>
+    <Company>ApiSign</Company>
+    <Product>ApiSign.AspNetCore</Product>
+    <Description>Lightweight ASP.NET Core API request signing middleware and action filter.</Description>
+    <RepositoryUrl>https://github.com/ZUOXIANGE/ApiSign</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/ZUOXIANGE/ApiSign</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>apisign;signature;aspnetcore;middleware;security</PackageTags>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+</Project>

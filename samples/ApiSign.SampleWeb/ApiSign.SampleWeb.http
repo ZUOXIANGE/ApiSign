@@ -1,0 +1,34 @@
+@host = http://localhost:5186
+@appId = demo-app
+@nonce = n-20260605-001
+@timestamp = 1760000000
+@sign = 174B6E0466DB2D49C7D45D31584BCC8BFB83E09A4C0CA86AFD146FC2D31CA1B6
+
+### 健康检查
+GET {{host}}/health
+
+### 公开接口
+GET {{host}}/api/payment/public-key
+
+### 签名请求示例
+# 注意：
+# 1. 这里的 sign 对应固定示例参数，仅用于演示。
+# 2. 真正联调时请替换 timestamp、nonce，并重新计算 sign。
+POST {{host}}/api/payment/transfer?appId={{appId}}&nonce={{nonce}}&timestamp={{timestamp}}&sign={{sign}}
+Content-Type: application/json
+
+{
+  "orderId": "ORD-1001",
+  "amount": 99.50,
+  "currency": "CNY"
+}
+
+### 签名失败示例（缺少 sign）
+POST {{host}}/api/payment/transfer?appId={{appId}}&nonce={{nonce}}&timestamp={{timestamp}}
+Content-Type: application/json
+
+{
+  "orderId": "ORD-1001",
+  "amount": 99.50,
+  "currency": "CNY"
+}

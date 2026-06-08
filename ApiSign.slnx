@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/ApiSign.SampleWeb/ApiSign.SampleWeb.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/ApiSign.AspNetCore/ApiSign.AspNetCore.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ApiSign.AspNetCore.Tests/ApiSign.AspNetCore.Tests.csproj" />
+  </Folder>
+</Solution>
