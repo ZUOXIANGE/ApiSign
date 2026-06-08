@@ -46,7 +46,7 @@ jobs:
         run: dotnet pack --no-build --configuration Release --output ./artifacts
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nuget-packages
           path: ./artifacts/*.nupkg
@@ -72,7 +72,7 @@ jobs:
         run: dotnet test --no-restore --configuration Release --collect:"XPlat Code Coverage" --results-directory ./TestResults
 
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results
