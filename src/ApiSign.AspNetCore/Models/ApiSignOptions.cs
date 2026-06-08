@@ -15,7 +15,7 @@ public sealed class ApiSignOptions
 
     public SignAlgorithm DefaultAlgorithm { get; set; } = SignAlgorithm.HMACSHA256;
 
-    public bool StrictMode { get; set; }
+    public bool StrictMode { get; set; } = true;
 
     public string AppIdParamName { get; set; } = "appId";
 

@@ -14,7 +14,7 @@ public sealed class DefaultSignParameterExtractorTests
     [Fact]
     public async Task ExtractAsync_UsesPriority_QueryThenBodyThenHeaders()
     {
-        var options = Options.Create(new ApiSignOptions());
+        var options = Options.Create(new ApiSignOptions { StrictMode = false });
         var extractor = new DefaultSignParameterExtractor(options, NullLogger<DefaultSignParameterExtractor>.Instance);
         var context = new DefaultHttpContext();
         context.Request.Method = HttpMethods.Post;

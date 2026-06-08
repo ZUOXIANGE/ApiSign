@@ -1,5 +1,10 @@
 # ApiSign
 
+[![NuGet](https://img.shields.io/nuget/v/ApiSign.AspNetCore)](https://www.nuget.org/packages/ApiSign.AspNetCore)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/ApiSign.AspNetCore)](https://www.nuget.org/packages/ApiSign.AspNetCore)
+[![CI](https://github.com/ZUOXIANGE/ApiSign/actions/workflows/ci.yml/badge.svg)](https://github.com/ZUOXIANGE/ApiSign/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/ZUOXIANGE/ApiSign/blob/main/LICENSE)
+
 `ApiSign.AspNetCore` 是一个轻量级的 ASP.NET Core API 签名认证组件，专注请求防篡改、防重放和多算法签名验证。
 
 ## 功能
@@ -39,40 +44,38 @@ app.UseApiSignAuthentication(excludedPaths: new[] { "/health" });
 
 ## StrictMode 严格模式
 
-`ApiSignOptions.StrictMode` 控制签名参数的提取策略，默认关闭（`false`）。
+`ApiSignOptions.StrictMode` 控制签名参数的提取策略，默认启用（`true`）。
 
-### 非严格模式（默认）
+### 严格模式（默认）
 
-签名参数（`appId`、`nonce`、`timestamp`、`sign`）可以从 Query String、Request Body 或 Header 中任意位置获取，优先级为 Query/Body 优先，Header 补充。适用于客户端签名参数位置不固定的场景。
+签名参数**必须**通过 Header 传递，且 Header 中的值会覆盖 Query/Body 中的同名参数。同时，Query/Body 中的签名参数会被排除在签名字符串之外，确保签名计算仅依赖业务参数。
 
 ```csharp
 builder.Services.AddApiSignAuthentication(options =>
 {
-    options.StrictMode = false; // 默认值
+    options.StrictMode = true; // 默认值
 });
 ```
 
-### 严格模式
+### 非严格模式
 
-开启后签名参数**必须**通过 Header 传递，且 Header 中的值会覆盖 Query/Body 中的同名参数。同时，Query/Body 中的签名参数会被排除在签名字符串之外，确保签名计算仅依赖业务参数。
-
-**适用场景**：需要明确区分签名元数据与业务参数，避免参数污染。
+关闭后签名参数（`appId`、`nonce`、`timestamp`、`sign`）可以从 Query String、Request Body 或 Header 中任意位置获取，优先级为 Query/Body 优先，Header 补充。适用于客户端签名参数位置不固定的场景。
 
 ```csharp
 builder.Services.AddApiSignAuthentication(options =>
 {
-    options.StrictMode = true;
+    options.StrictMode = false;
 });
 ```
 
 **两种模式对比**：
 
-| 行为 | 非严格模式 | 严格模式 |
-|---|---|---|
-| 签名参数来源 | Query/Body/Header 均可 | 仅 Header |
-| Header 同名参数覆盖 | 否 | 是 |
-| 签名参数参与签名计算 | 参与 | 不参与 |
-| JSON 解析失败 | 静默忽略并记录警告 | 抛出异常 |
+| 行为                 | 严格模式（默认） | 非严格模式             |
+| -------------------- | ---------------- | ---------------------- |
+| 签名参数来源         | 仅 Header        | Query/Body/Header 均可 |
+| Header 同名参数覆盖  | 是               | 否                     |
+| 签名参数参与签名计算 | 不参与           | 参与                   |
+| JSON 解析失败        | 抛出异常         | 静默忽略并记录警告     |
 
 ## 自定义失败响应
 
@@ -119,65 +122,7 @@ builder.Services.AddApiSignAuthentication();
 
 注册自定义实现后，中间件模式和 `[SaCheckSign]` 特性模式都会复用同一个失败响应处理器。
 
-## Git Hooks
 
-项目已接入 `Husky.Net` 用于本地代码质量管控：
-
-- 本地工具清单：`dotnet-tools.json`
-- Hook 配置目录：`.husky`
-- 任务配置：`.husky/task-runner.json`
-
-当前启用的质量门禁：
-
-- `commit-msg`：校验提交信息是否符合 Conventional Commits
-- `pre-commit`：对暂存区中的 `.cs`、`.csproj`、`.props`、`.targets` 文件执行 `dotnet format`
-- `pre-push`：执行 `dotnet build ApiSign.slnx --no-restore`
-- `pre-push`：执行 `dotnet test ApiSign.slnx --no-build`
-
-提交信息格式示例：
-
-```text
-feat: add Redis nonce store
-fix(api): validate timestamp drift
-docs(readme)!: describe breaking changes
-```
-
-允许的提交类型：
-
-- `build`
-- `chore`
-- `ci`
-- `docs`
-- `feat`
-- `fix`
-- `perf`
-- `refactor`
-- `revert`
-- `style`
-- `test`
-
-常用命令：
-
-```bash
-dotnet tool restore
-dotnet husky install
-dotnet husky run --group pre-commit
-dotnet husky run --group pre-push
-```
-
-说明：
-
-- `Directory.Build.targets` 已接入自动安装逻辑，团队成员在仓库根目录执行 `restore/build` 后会自动补齐 hooks
-- 若需临时跳过 hook，可使用 `git commit --no-verify`
-- CI/CD 场景可设置环境变量 `HUSKY=0`
-
-## Testing
-
-测试项目 `tests/ApiSign.AspNetCore.Tests` 现已使用 `xUnit v3`：
-
-- 核心测试包：`xunit.v3`
-- IDE/VSTest 适配器：`xunit.runner.visualstudio`
-- 测试项目使用可执行测试模型，因此已设置 `OutputType` 为 `Exe`
 
 ## Redis Nonce 示例
 

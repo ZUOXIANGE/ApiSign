@@ -47,7 +47,7 @@ public sealed class SampleWebIntegrationTests : IClassFixture<WebApplicationFact
             timestamp,
             secretKey,
             requestBody,
-            strictMode: false);
+            strictMode: true);
         using var response = await client.SendAsync(request, cancellationToken);
 
         var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
