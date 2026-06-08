@@ -4,6 +4,7 @@ using ApiSign.AspNetCore.Core;
 using ApiSign.AspNetCore.Models;
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace ApiSign.AspNetCore.Tests;
@@ -14,7 +15,7 @@ public sealed class DefaultSignParameterExtractorTests
     public async Task ExtractAsync_UsesPriority_QueryThenBodyThenHeaders()
     {
         var options = Options.Create(new ApiSignOptions());
-        var extractor = new DefaultSignParameterExtractor(options);
+        var extractor = new DefaultSignParameterExtractor(options, NullLogger<DefaultSignParameterExtractor>.Instance);
         var context = new DefaultHttpContext();
         context.Request.Method = HttpMethods.Post;
         context.Request.QueryString = new QueryString("?appId=query-app&timestamp=1710000000&biz=query");

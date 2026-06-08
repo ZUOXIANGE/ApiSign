@@ -9,6 +9,7 @@ using ApiSign.AspNetCore.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 namespace ApiSign.AspNetCore.Tests;
@@ -349,7 +350,7 @@ public sealed class SampleWebIntegrationTests : IClassFixture<WebApplicationFact
         var extractor = new DefaultSignParameterExtractor(Options.Create(new ApiSignOptions
         {
             StrictMode = strictMode,
-        }));
+        }), NullLogger<DefaultSignParameterExtractor>.Instance);
         var parameters = await extractor.ExtractAsync(request);
         var signatureCalculator = new SignatureCalculator();
         var sign = signatureCalculator.Calculate(parameters, secretKey, SignAlgorithm.HMACSHA256);

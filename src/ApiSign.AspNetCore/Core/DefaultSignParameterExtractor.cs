@@ -4,6 +4,7 @@ using ApiSign.AspNetCore.Abstractions;
 using ApiSign.AspNetCore.Models;
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 
@@ -15,13 +16,15 @@ namespace ApiSign.AspNetCore.Core;
 public sealed class DefaultSignParameterExtractor : ISignParameterExtractor
 {
     private readonly ApiSignOptions _options;
+    private readonly ILogger<DefaultSignParameterExtractor> _logger;
 
     /// <summary>
     /// Default request parameter extractor.
     /// </summary>
-    public DefaultSignParameterExtractor(IOptions<ApiSignOptions> options)
+    public DefaultSignParameterExtractor(IOptions<ApiSignOptions> options, ILogger<DefaultSignParameterExtractor> logger)
     {
         _options = options.Value;
+        _logger = logger;
     }
 
     public async Task<SignParameters> ExtractAsync(HttpRequest request)
@@ -115,9 +118,14 @@ public sealed class DefaultSignParameterExtractor : ISignParameterExtractor
                 TryAdd(target, property.Name, ConvertJsonValue(property.Value), overwrite: false);
             }
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            // Ignore malformed JSON here and let the application layer handle body validation.
+            if (_options.StrictMode)
+            {
+                throw;
+            }
+
+            _logger.LogWarning(ex, "Failed to parse JSON body for signature parameters. Body will be ignored in non-strict mode.");
         }
         finally
         {

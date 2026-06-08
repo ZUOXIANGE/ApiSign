@@ -37,6 +37,43 @@ app.UseApiSignAuthentication(excludedPaths: new[] { "/health" });
 
 请求签名与调用示例见 `samples/ApiSign.SampleWeb/REQUEST_EXAMPLES.md` 和 `samples/ApiSign.SampleWeb/ApiSign.SampleWeb.http`。
 
+## StrictMode 严格模式
+
+`ApiSignOptions.StrictMode` 控制签名参数的提取策略，默认关闭（`false`）。
+
+### 非严格模式（默认）
+
+签名参数（`appId`、`nonce`、`timestamp`、`sign`）可以从 Query String、Request Body 或 Header 中任意位置获取，优先级为 Query/Body 优先，Header 补充。适用于客户端签名参数位置不固定的场景。
+
+```csharp
+builder.Services.AddApiSignAuthentication(options =>
+{
+    options.StrictMode = false; // 默认值
+});
+```
+
+### 严格模式
+
+开启后签名参数**必须**通过 Header 传递，且 Header 中的值会覆盖 Query/Body 中的同名参数。同时，Query/Body 中的签名参数会被排除在签名字符串之外，确保签名计算仅依赖业务参数。
+
+**适用场景**：需要明确区分签名元数据与业务参数，避免参数污染。
+
+```csharp
+builder.Services.AddApiSignAuthentication(options =>
+{
+    options.StrictMode = true;
+});
+```
+
+**两种模式对比**：
+
+| 行为 | 非严格模式 | 严格模式 |
+|---|---|---|
+| 签名参数来源 | Query/Body/Header 均可 | 仅 Header |
+| Header 同名参数覆盖 | 否 | 是 |
+| 签名参数参与签名计算 | 参与 | 不参与 |
+| JSON 解析失败 | 静默忽略并记录警告 | 抛出异常 |
+
 ## 自定义失败响应
 
 默认情况下，签名校验失败会返回如下 JSON：

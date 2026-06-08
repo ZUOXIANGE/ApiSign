@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/ApiSign.Benchmarks/ApiSign.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/ApiSign.SampleWeb/ApiSign.SampleWeb.csproj" />
   </Folder>
