@@ -46,4 +46,37 @@ public sealed class SignatureCalculatorTests
 
         Assert.Equal("B998658C6304C687FAD4E92F33FB12D5205ED2182197A7112CFF3D688D20FFE1", signature);
     }
+
+    [Fact]
+    public void BuildCanonicalString_WithNoBusinessParameters_ReturnsOnlySignParameters()
+    {
+        var parameters = new SignParameters
+        {
+            AppId = "client-a",
+            Nonce = "nonce-1",
+            Timestamp = 1710000000,
+        };
+
+        var canonical = _calculator.BuildCanonicalString(parameters);
+
+        Assert.Equal("appId=client-a&nonce=nonce-1&timestamp=1710000000", canonical);
+    }
+
+    [Fact]
+    public void Calculate_WithNoBusinessParameters_ReturnsValidHash()
+    {
+        var parameters = new SignParameters
+        {
+            AppId = "demo-app",
+            Nonce = "no-business-params",
+            Timestamp = 1710000000,
+        };
+
+        var signature = _calculator.Calculate(parameters, "secret-001", SignAlgorithm.HMACSHA256);
+
+        Assert.Matches("^[0-9A-F]{64}$", signature);
+
+        var secondSignature = _calculator.Calculate(parameters, "secret-001", SignAlgorithm.HMACSHA256);
+        Assert.Equal(signature, secondSignature);
+    }
 }

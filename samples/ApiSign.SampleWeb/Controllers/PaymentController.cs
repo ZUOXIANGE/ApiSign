@@ -28,6 +28,15 @@ public sealed class PaymentController : ControllerBase
             appId = "demo-app",
             publicKey = "sample-public-key",
         });
+
+    [HttpGet("status")]
+    [SaCheckSign]
+    public IActionResult GetStatus()
+        => Ok(new
+        {
+            success = true,
+            appId = HttpContext.Items["ApiSign:AppId"],
+        });
 }
 
 public sealed record TransferRequest(string OrderId, decimal Amount, string Currency);

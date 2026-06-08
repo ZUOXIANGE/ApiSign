@@ -300,6 +300,91 @@ public sealed class SampleWebIntegrationTests : IClassFixture<WebApplicationFact
         Assert.Equal(requestBody.orderId, payload.GetProperty("orderId").GetString());
     }
 
+    [Fact]
+    public async Task Status_WithValidSignature_ReturnsSuccessPayload()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var client = _factory.CreateClient();
+
+        const string appId = "demo-app";
+        const string secretKey = "secret-001";
+        const string nonce = "integration-status-valid-001";
+        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        using var request = await CreateSignedStatusRequestMessageAsync(
+            appId,
+            nonce,
+            timestamp,
+            secretKey,
+            strictMode: true);
+        using var response = await client.SendAsync(request, cancellationToken);
+
+        var payloadText = await response.Content.ReadAsStringAsync(cancellationToken);
+        Assert.True(
+            response.StatusCode == HttpStatusCode.OK,
+            $"Unexpected status code {(int)response.StatusCode} ({response.StatusCode}). Body: {payloadText}");
+
+        var payload = JsonSerializer.Deserialize<JsonElement>(payloadText);
+
+        Assert.True(payload.GetProperty("success").GetBoolean());
+        Assert.Equal(appId, payload.GetProperty("appId").GetString());
+    }
+
+    [Fact]
+    public async Task Status_WithoutSign_ReturnsCustomFailurePayload()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var client = _factory.CreateClient();
+
+        const string appId = "demo-app";
+        const string nonce = "integration-status-no-sign-001";
+        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        var requestUri = $"/api/payment/status?appId={appId}&nonce={nonce}&timestamp={timestamp}";
+        using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
+        using var response = await client.SendAsync(request, cancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        var payload = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+
+        Assert.False(payload.GetProperty("success").GetBoolean());
+        Assert.Equal("MissingParameters", payload.GetProperty("errorCode").GetString());
+        Assert.Equal("Missing required signing parameters.", payload.GetProperty("errorMessage").GetString());
+        Assert.Equal("/api/payment/status", payload.GetProperty("path").GetString());
+    }
+
+    [Fact]
+    public async Task Status_WithStrictModeAndHeaderSignature_ReturnsSuccessPayload()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var factory = CreateStrictModeFactory();
+        using var client = factory.CreateClient();
+
+        const string appId = "demo-app";
+        const string secretKey = "secret-001";
+        const string nonce = "integration-status-strict-001";
+        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        using var request = await CreateSignedStatusRequestMessageAsync(
+            appId,
+            nonce,
+            timestamp,
+            secretKey,
+            strictMode: true);
+        using var response = await client.SendAsync(request, cancellationToken);
+
+        var payloadText = await response.Content.ReadAsStringAsync(cancellationToken);
+        Assert.True(
+            response.StatusCode == HttpStatusCode.OK,
+            $"Unexpected status code {(int)response.StatusCode} ({response.StatusCode}). Body: {payloadText}");
+
+        var payload = JsonSerializer.Deserialize<JsonElement>(payloadText);
+
+        Assert.True(payload.GetProperty("success").GetBoolean());
+        Assert.Equal(appId, payload.GetProperty("appId").GetString());
+    }
+
     private static WebApplicationFactory<Program> CreateStrictModeFactory()
         => new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
@@ -309,6 +394,41 @@ public sealed class SampleWebIntegrationTests : IClassFixture<WebApplicationFact
                     services.PostConfigure<ApiSignOptions>(options => options.StrictMode = true);
                 });
             });
+
+    private static async Task<HttpRequestMessage> CreateSignedStatusRequestMessageAsync(
+        string appId,
+        string nonce,
+        long timestamp,
+        string secretKey,
+        bool strictMode)
+    {
+        var parameters = new SignParameters
+        {
+            AppId = appId,
+            Nonce = nonce,
+            Timestamp = timestamp,
+        };
+        var signatureCalculator = new SignatureCalculator();
+        var sign = signatureCalculator.Calculate(parameters, secretKey, SignAlgorithm.HMACSHA256);
+
+        var requestMessage = new HttpRequestMessage(HttpMethod.Get, "/api/payment/status");
+
+        if (strictMode)
+        {
+            requestMessage.Headers.Add("appId", appId);
+            requestMessage.Headers.Add("nonce", nonce);
+            requestMessage.Headers.Add("timestamp", timestamp.ToString());
+            requestMessage.Headers.Add("sign", sign);
+        }
+
+        var queryString = strictMode
+            ? string.Empty
+            : $"?appId={Uri.EscapeDataString(appId)}&nonce={Uri.EscapeDataString(nonce)}&timestamp={timestamp}&sign={Uri.EscapeDataString(sign)}";
+
+        requestMessage.RequestUri = new Uri($"/api/payment/status{queryString}", UriKind.Relative);
+
+        return requestMessage;
+    }
 
     private static async Task<HttpRequestMessage> CreateSignedTransferRequestMessageAsync(
         string appId,

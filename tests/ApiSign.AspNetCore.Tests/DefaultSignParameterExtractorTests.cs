@@ -36,4 +36,43 @@ public sealed class DefaultSignParameterExtractorTests
         Assert.Equal("query", result.OtherParams["biz"]);
         Assert.Equal("99", result.OtherParams["amount"]);
     }
+
+    [Fact]
+    public async Task ExtractAsync_GetRequestWithOnlyQuerySignParameters_ReturnsEmptyOtherParams()
+    {
+        var options = Options.Create(new ApiSignOptions { StrictMode = false });
+        var extractor = new DefaultSignParameterExtractor(options, NullLogger<DefaultSignParameterExtractor>.Instance);
+        var context = new DefaultHttpContext();
+        context.Request.Method = HttpMethods.Get;
+        context.Request.QueryString = new QueryString("?appId=demo-app&nonce=n-001&timestamp=1710000000&sign=abc123");
+
+        var result = await extractor.ExtractAsync(context.Request);
+
+        Assert.Equal("demo-app", result.AppId);
+        Assert.Equal("n-001", result.Nonce);
+        Assert.Equal(1710000000, result.Timestamp);
+        Assert.Equal("abc123", result.Sign);
+        Assert.Empty(result.OtherParams);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_StrictModeGetRequestWithHeadersOnly_ReturnsEmptyOtherParams()
+    {
+        var options = Options.Create(new ApiSignOptions { StrictMode = true });
+        var extractor = new DefaultSignParameterExtractor(options, NullLogger<DefaultSignParameterExtractor>.Instance);
+        var context = new DefaultHttpContext();
+        context.Request.Method = HttpMethods.Get;
+        context.Request.Headers["appId"] = "demo-app";
+        context.Request.Headers["nonce"] = "n-001";
+        context.Request.Headers["timestamp"] = "1710000000";
+        context.Request.Headers["sign"] = "abc123";
+
+        var result = await extractor.ExtractAsync(context.Request);
+
+        Assert.Equal("demo-app", result.AppId);
+        Assert.Equal("n-001", result.Nonce);
+        Assert.Equal(1710000000, result.Timestamp);
+        Assert.Equal("abc123", result.Sign);
+        Assert.Empty(result.OtherParams);
+    }
 }

@@ -48,6 +48,33 @@ public sealed class SignValidatorTests
     }
 
     [Fact]
+    public async Task ValidateAsync_WithNoBusinessParameters_Succeeds()
+    {
+        var now = DateTimeOffset.Parse("2026-06-05T12:00:00Z");
+        var calculator = new SignatureCalculator();
+        var parameters = new SignParameters
+        {
+            AppId = "demo-app",
+            Nonce = "nonce-no-biz",
+            Timestamp = now.ToUnixTimeSeconds(),
+        };
+        parameters.Sign = calculator.Calculate(parameters, "secret-001", SignAlgorithm.HMACSHA256);
+
+        var validator = new SignValidator(
+            new StubExtractor(parameters),
+            new StubAppSecretProvider(),
+            new DefaultNonceStore(new MemoryCache(new MemoryCacheOptions())),
+            calculator,
+            Options.Create(new ApiSignOptions()),
+            new FakeTimeProvider(now));
+
+        var result = await validator.ValidateAsync(new DefaultHttpContext());
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("demo-app", result.AppId);
+    }
+
+    [Fact]
     public async Task ValidateAsync_ReusedNonce_Fails()
     {
         var now = DateTimeOffset.Parse("2026-06-05T12:00:00Z");
