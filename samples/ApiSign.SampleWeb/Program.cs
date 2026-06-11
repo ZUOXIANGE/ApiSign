@@ -37,6 +37,9 @@ builder.Services.AddApiSignAuthentication(options =>
     options.DefaultAlgorithm = SignAlgorithm.HMACSHA256;
 });
 
+builder.Services.AddHttpClient("callback-client")
+    .AddApiSignMessageHandler("demo-app");
+
 builder.Services.AddOpenTelemetry()
     .WithTracing(tracing => tracing
         .AddSource(ApiSignDiagnostics.ActivitySourceName)
@@ -56,7 +59,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseAuthorization();
-app.UseApiSignAuthentication(excludedPaths: new[] { "/health", "/api/payment/public-key" });
+app.UseApiSignAuthentication(excludedPaths: new[] { "/health", "/api/payment/public-key", "/api/payment/callback-simulation" });
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 

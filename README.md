@@ -163,3 +163,107 @@ if (redisNonceOptions.Enabled)
     builder.Services.AddSingleton<INonceStore, RedisNonceStore>();
 }
 ```
+
+
+
+## 客户端签名（回调第三方接口）
+
+当你需要主动调用第三方 API 并对出站请求自动签名时，使用 `ApiSignHttpMessageHandler`。它通过 `DelegatingHandler` 模式嵌入 `HttpClient` 管道，在发起请求前自动附加签名 Header。
+
+### 注册方式
+
+注册时**不建议**绑定固定的 `BaseAddress`，因为回调地址通常是运行时动态决定的：
+
+```csharp
+// ✅ 推荐：不绑死 BaseAddress，请求时传入完整 URI
+builder.Services.AddHttpClient("callback-client")
+    .AddApiSignMessageHandler("my-app-id", options =>
+    {
+        options.Algorithm = SignAlgorithm.HMACSHA256;
+        options.StrictMode = true;
+    });
+```
+
+### 使用示例
+
+#### 动态回调 URL（推荐）
+
+回调 URL 通常存储在数据库或配置中，请求时动态传入：
+
+```csharp
+[ApiController]
+[Route("api/payment")]
+public class PaymentController : ControllerBase
+{
+    private readonly IHttpClientFactory _httpClientFactory;
+
+    public PaymentController(IHttpClientFactory httpClientFactory)
+    {
+        _httpClientFactory = httpClientFactory;
+    }
+
+    [HttpPost("notify")]
+    public async Task<IActionResult> NotifyThirdParty(
+        [FromBody] NotifyRequest request)
+    {
+        var client = _httpClientFactory.CreateClient("callback-client");
+
+        var payload = new { request.OrderId, Status = "paid", request.Amount };
+        var response = await client.PostAsJsonAsync(request.CallbackUrl, payload);
+
+        return Ok(await response.Content.ReadFromJsonAsync<object>());
+    }
+}
+
+public sealed record NotifyRequest(
+    string OrderId,
+    decimal Amount,
+    string CallbackUrl);
+```
+
+#### 从配置读取
+
+```csharp
+// appsettings.json
+{
+  "Callback": {
+    "TransferUrl": "https://partner.example.com/api/transfer"
+  }
+}
+
+// 使用方
+var callbackUrl = _configuration["Callback:TransferUrl"];
+var response = await client.PostAsJsonAsync(callbackUrl, payload);
+```
+```
+
+### 签名流程
+
+1. 从 `IAppSecretProvider` 获取应用密钥
+2. 收集请求参数（Query String、Form、JSON Body）
+3. 严格模式下，剔除 `appId`/`nonce`/`timestamp`/`sign` 等签名参数名
+4. 构建规范字符串并计算签名
+5. 将 `appId`、`nonce`、`timestamp`、`sign` 写入请求 Header
+
+### 签名算法覆盖
+
+默认使用 `IAppSecretProvider` 返回的算法。你也可以在注册时通过 `options.Algorithm` 覆盖：
+
+```csharp
+.AddApiSignMessageHandler("my-app-id", options =>
+{
+    options.Algorithm = SignAlgorithm.SHA256;
+})
+```
+
+### 自定义 Header 名称
+
+```csharp
+.AddApiSignMessageHandler("my-app-id", options =>
+{
+    options.AppIdHeaderName = "X-App-Id";
+    options.NonceHeaderName = "X-Nonce";
+    options.TimestampHeaderName = "X-Timestamp";
+    options.SignHeaderName = "X-Sign";
+})
+```
