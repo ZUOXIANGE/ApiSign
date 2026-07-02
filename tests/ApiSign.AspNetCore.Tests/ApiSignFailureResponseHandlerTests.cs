@@ -8,6 +8,7 @@ using ApiSign.AspNetCore.Models;
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace ApiSign.AspNetCore.Tests;
 
@@ -50,6 +51,42 @@ public sealed class ApiSignFailureResponseHandlerTests
         var handler = provider.GetRequiredService<IApiSignFailureResponseHandler>();
 
         Assert.IsType<PlainTextFailureResponseHandler>(handler);
+    }
+
+    [Fact]
+    public void AddApiSignAuthentication_WithNonceExpiryShorterThanTimestampWindow_ThrowsOnAccess()
+    {
+        var services = new ServiceCollection();
+        services.AddApiSignAuthentication(options =>
+        {
+            options.EnableNonce = true;
+            options.TimestampDisparitySeconds = 900;
+            options.NonceExpireSeconds = 60;
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var optionsAccessor = provider.GetRequiredService<IOptions<ApiSignOptions>>();
+
+        var ex = Assert.Throws<OptionsValidationException>(() => optionsAccessor.Value);
+        Assert.Contains("NonceExpireSeconds", ex.Message);
+    }
+
+    [Fact]
+    public void AddApiSignAuthentication_WithNonceDisabled_AllowsShorterNonceExpiry()
+    {
+        var services = new ServiceCollection();
+        services.AddApiSignAuthentication(options =>
+        {
+            options.EnableNonce = false;
+            options.TimestampDisparitySeconds = 900;
+            options.NonceExpireSeconds = 60;
+        });
+
+        using var provider = services.BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<ApiSignOptions>>().Value;
+
+        Assert.False(options.EnableNonce);
+        Assert.Equal(60, options.NonceExpireSeconds);
     }
 
     private sealed class PlainTextFailureResponseHandler : IApiSignFailureResponseHandler
